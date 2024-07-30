@@ -16,7 +16,7 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage: storage,
     fileFilter: function (req, file, cb){
-        if(file.mimetype.startsWith('/image')){
+        if(file.mimetype.startsWith('image/')){
             cb(null, true);
         }else{
             cb(new ErrorHandler('Hanya images saja', 405))

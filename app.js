@@ -8,6 +8,7 @@ const LocalStrategy = require('passport-local')
 const User = require('./models/user')
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
+const ExpressError = require('./utils/ExpressError')
 
 const app = express();
 
@@ -75,7 +76,7 @@ app.use('/places/:place_id/reviews', require('./routes/reviews'))
 
 
 app.all('*', (req, res, next) => {
-    next(new ExpressHandler())
+    next(new ExpressError('Page Not Found', 404))
 })
 
 app.use((err, req, res, next) => {

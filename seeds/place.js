@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Place = require('../models/places');
-const hereMaps = require('../utils/hereMaps');
+const { geometry } = require('../utils/hereMaps');
 
 mongoose.connect('mongodb://127.0.0.1/bestPoints')
     .then((result) => {
@@ -154,26 +154,38 @@ async function seedPlaces() {
         }
     ]
 
-    const newPlace = await Promise.all(places.map(async (place) => {
-        let geoData = await hereMaps.geometry(place.location);
-        if (!geoData) {
-            geoData = { type: 'Point', coordinates: [116.32883, -8.90952] }
-        }
-        return {
-            ...place,
-            author: '643d36579773b789e91ef660',
-            images: {
-                url: 'public\\images\\image-1681876521153-260851838.jpg',
-                filename: 'image-1681876521153-260851838.jpg'
-            },
-            geometry: { ...geoData }
-        }
-    }))
+    // const newPlace = await Promise.all(places.map(async (place) => {
+    //     let geoData = await geometry(place.location);
+    //     if (!geoData) {
+    //         geoData = { type: 'Point', coordinates: [116.32883, -8.90952] }
+    //     }
+    //     return {
+    //         ...place,
+    //         author: '643d36579773b789e91ef660',
+    //         images: {
+    //             url: 'public\\images\\image-1681876521153-260851838.jpg',
+    //             filename: 'image-1681876521153-260851838.jpg'
+    //         },
+    //         geometry: { ...geoData }
+    //     }
+    // }))
 
     try {
-        const newPlace = places.map(place => {
-            return {...place, author: '669f18e7cb993c8e868ae032'}
-        })
+        const newPlace = await Promise.all(places.map(async place => {
+            let geoData = await geometry(place.location)
+            if(!geoData){
+                geoData = { type: 'Point', coordinates: [116.32883, -8.90952]}
+            }
+            return {
+                ...place, author: '669f18e7cb993c8e868ae032', 
+                images: {
+                    url: 'public/images/image-1721821327791-611174069.png',
+                    filename: 'image-1721821327791-611174069.png'
+                },
+                geometry: geoData
+            }
+        }))
+        
         await Place.deleteMany({});
         await Place.insertMany(newPlace);
         console.log('Data berhasil disimpan');

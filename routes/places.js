@@ -15,22 +15,23 @@ const router = express.Router();
 
 router.route('/')
     .get(wrapAsync(PlaceController.index))
-    //.post(isAuth, validatePlace,wrapAsync(PlaceController.store))
-    .post(isAuth, upload.array('image', 5), (req, res) => {
-        console.log(req.files);
-        console.log(req.body);
-        res.send('it works');
-    })
+    .post(isAuth, upload.array('image', 5), validatePlace,wrapAsync(PlaceController.store))
+    
 router.get('/create', isAuth, async(req, res) => {
     res.render('places/create')
 })
 
+router.get('/landing', wrapAsync(PlaceController.landing))
+
+router.get(isValidObject('/places'), wrapAsync(PlaceController.landing))
 
 router.route('/:id')
     .get(isValidObject('/places'), wrapAsync(PlaceController.show))
-    .put(isAuth, isAuthorPlace, isValidObject('/places'), validatePlace, wrapAsync(PlaceController.update))
+    .put(isAuth, isAuthorPlace, isValidObject('/places'), upload.array('image', 5), validatePlace, wrapAsync(PlaceController.update))
     .delete(isAuth, isAuthorPlace, isValidObject('/places'), wrapAsync(PlaceController.destroy))
 
 router.get('/:id/edit', isAuth, isAuthorPlace, isValidObject('/places'), wrapAsync(PlaceController.edit))
+
+router.delete('/:id/images', isAuth, isAuthorPlace, isValidObject('/places'), wrapAsync(PlaceController.destroyImages))
 
 module.exports = router

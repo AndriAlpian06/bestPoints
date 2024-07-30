@@ -27,7 +27,7 @@ module.exports.loginForm = (req, res) => {
 
 module.exports.login = (req, res) => {
     req.flash('success_msg', 'Kamu berhasil login')
-    res.redirect('/places');
+    res.redirect('/places/landing');
 }
 
 module.exports.logout = (req, res) => {

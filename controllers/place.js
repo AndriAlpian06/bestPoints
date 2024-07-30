@@ -1,16 +1,40 @@
 const Place = require('../models/places')
+const fs = require('fs')
+const { geometry } = require('../utils/hereMaps');
+const ExpressError = require('../utils/ExpressError');
+const { title } = require('process');
 
 module.exports.index = async(req, res) => {
     const places = await Place.find();
 
-    res.render('places/index', { places })
+    const clusteringPlace = places.map(place => {
+        return {
+            latitude: place.geometry.coordinates[1],
+            longitude: place.geometry.coordinates[0],
+        }
+    })
+
+
+    const clusteredPlace = JSON.stringify(clusteringPlace)
+    res.render('places/index', { places, clusteredPlace })
 }
 
 module.exports.store = async(req, res, next) => {
 
+    const images = req.files.map(file => ({
+        url: file.path,
+        filename: file.filename
+    }))
+
+    const geoData = await geometry(req.body.place.location);
+
     const place = new Place(req.body.place)
     place.author = req.user._id;
+    place.images = images;
+    place.geometry = geoData;
+
     await place.save()
+
     req.flash('success_msg', 'Place Added Successfully')
     res.redirect('/places')
     
@@ -37,13 +61,96 @@ module.exports.edit = async(req, res) => {
 }
 
 module.exports.update = async(req, res) => {
-    await Place.findByIdAndUpdate(req.params.id, { ...req.body.place });
+    const { place } = req.body;
+
+    const geoData = await geometry(place.location);
+
+    const newPlace = await Place.findByIdAndUpdate(req.params.id, { ...place, geometry: geoData });
+
+    if(req.files && req.files.length > 0){
+
+        place.images.forEach(image => {
+            fs.unlink(image.url, err => new ExpressError(err));
+        })
+
+        const images = req.files.map(file => ({
+            url: file.path,
+            filename: file.filename
+        }))
+        newPlace.images = images;
+        await newPlace.save()
+    }
+
     req.flash('success_msg', 'Place Updated Successfully')
     res.redirect(`/places/${req.params.id}`)
 }
 
 module.exports.destroy = async(req, res) => {
-    await Place.findByIdAndDelete(req.params.id)
+    const { id } = req.params;
+    const place = await Place.findById(id)
+
+    if(place.images.length > 0){
+
+        place.images.forEach(image => {
+            fs.unlink(image.url, err => new ExpressError(err));
+        })
+    }
+
+    await place.deleteOne();
+
     req.flash('success_msg', 'Place Deleted Successfully')
     res.redirect('/places')
+}
+
+module.exports.destroyImages = async(req, res) => {
+
+    try {
+
+        const { id } = req.params;    
+        const { images } = req.body;
+
+        if(!images || images.length === 0){
+            req.flash('error_msg', 'Mohon pilih salah satu image')
+            return res.redirect(`/places/${id}/edit`)
+        }
+
+        images.forEach(image => {
+            fs.unlinkSync(image)
+        });
+
+        await Place.findByIdAndUpdate(
+            id,
+            { $pull: { images: { url: { $in: images }}}},
+            { new: true }
+        )
+
+        req.flash('success_msg', 'Success deleted images');
+        return res.redirect(`/places/${id}/edit`)
+
+    } catch (err){
+        const { id } = req.params; 
+        console.error(err);
+        req.flash('error_msg', 'Failed deleted images');
+        return res.redirect(`/places/${id}/edit`)
+    }
+}
+
+module.exports.landing = async(req, res) => {
+    const places = await Place.find();
+
+    const clusteringPlace = places.map(place => {
+        return {
+            id: place.id,
+            title: place.title,
+            price: place.price,
+            image: place.images,
+            latitude: place.geometry.coordinates[1],
+            longitude: place.geometry.coordinates[0],
+        }
+    })
+
+
+    const clusteredPlace = JSON.stringify(clusteringPlace)
+
+    res.render('places/landing', { places, clusteredPlace })
 }
