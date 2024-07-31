@@ -85,6 +85,6 @@ app.use((err, req, res, next) => {
     res.status(statusCode).render('error', { err });
 })
 
-app.listen(3000, () => {
-    console.log(`Server is running on http://127.0.0.1:3000`);
+app.listen(3001, () => {
+    console.log(`Server is running on http://127.0.0.1:3001`);
 })
